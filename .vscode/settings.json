@@ -1,0 +1,74 @@
+{
+  // Entornos Python del proyecto (extensión "Python Environments", v1.40.0).
+  // `path` = raíz del proyecto Python; `envManager` = gestor de entornos; `packageManager` = gestor de paquetes.
+  "python-envs.pythonProjects": [
+    {
+      "path": "platform/backend",
+      "envManager": "ms-python.python:venv",
+      "packageManager": "ms-python.python:pip"
+    }
+  ],
+
+  // Intérprete por defecto del workspace.
+  "python.defaultInterpreterPath": "platform/backend/.venv/bin/python",
+
+  // Pylance: el source root del backend es `platform/backend` (paquete `app`).
+  "python.analysis.extraPaths": [
+    "platform/backend"
+  ],
+  "python.analysis.stubPath": "platform/backend/stubs",
+
+  // Resolución de imports y pytest.
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestArgs": [
+    "tests"
+  ],
+
+  // Exclusión de artefactos pesados para el indexado.
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/.pytest_cache": true,
+    "**/node_modules": true,
+    "**/.venv": true,
+    "**/tsconfig.tsbuildinfo": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/.venv": true,
+    "**/__pycache__": true
+  },
+
+  // Evita que Pylance analice el venv y las dependencias instaladas.
+  "python.analysis.diagnosticMode": "openFilesOnly",
+  "python.analysis.useLibraryCodeForTypes": true,
+  "python.analysis.autoImportCompletions": true,
+
+  // Editor
+  "editor.formatOnSave": false,
+  "editor.tabSize": 4,
+  "[python]": {
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+    "editor.formatOnSave": false
+  },
+  "[typescript]": {
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true
+  },
+  "[typescriptreact]": {
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true
+  },
+  "[json]": {
+    "editor.tabSize": 2
+  },
+  "[jsonc]": {
+    "editor.tabSize": 2
+  },
+
+  // Evita_INDEX / telemetría
+  "telemetry.telemetryLevel": "off",
+  "python-envs.defaultEnvManager": "ms-python.python:venv",
+  "python-envs.defaultPackageManager": "pip"
+}

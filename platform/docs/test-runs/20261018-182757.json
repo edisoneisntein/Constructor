@@ -1,0 +1,29 @@
+{
+  "timestamp_utc": "2026-10-18T18:27:57.310372+00:00",
+  "label": "Fase 13 W13.1/W13.2 cola externa + rate limit compartido",
+  "command": "/usr/local/bin/python3 -m pytest -q --junitxml /var/folders/33/yvb6xpf56x79gxrtx14qb48w0000gn/T/tmp79d23fl4-junit.xml",
+  "exit_code": 0,
+  "success": true,
+  "duration_seconds": 17.174,
+  "counts": {
+    "passed": 104,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "environment": {
+    "python_version": "3.12.3",
+    "pytest_version": "9.1.1",
+    "platform": "Darwin",
+    "machine": "x86_64"
+  },
+  "vcs": {
+    "commit": null,
+    "branch": null,
+    "dirty": false
+  },
+  "output_tail": [
+    "........................................................................ [ 69%]",
+    "................................                                         [100%]"
+  ]
+}

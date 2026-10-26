@@ -1,0 +1,212 @@
+{
+  "document": "SAAS REA",
+  "generated_from": "docs/FASE_0_WBS.md + docs/PROGRESS.md",
+  "note": "Registro verificable. Los criterios de aceptación deben revisarse; no se autoaprueban. Los node_ids de pytest referencian pruebas reales del repositorio.",
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "title": "Ingesta de artefactos ZIP con defensas",
+      "description": "Subir un proyecto como ZIP, almacenarlo por contenido y extraerlo de forma segura.",
+      "source": {"document": "SAAS REA", "section": "§4.5/§6.1", "page": null},
+      "acceptance_criteria": [
+        "Existe la extracción segura de ZIP",
+        "El flujo de subida y análisis funciona de extremo a extremo",
+        "Se rechazan archivos peligrosos"
+      ],
+      "dependencies": [],
+      "related_files": ["app/engines/ingestion/safe_zip.py", "app/services/artifact_service.py"],
+      "checks": [
+        {"id": "REQ-001-A", "type": "file_exists", "target": "app/engines/ingestion/safe_zip.py", "criterion": "Existe la extracción segura de ZIP", "required": true, "params": {"min_bytes": 200}},
+        {"id": "REQ-001-B", "type": "pytest", "criterion": "El flujo de subida y análisis funciona de extremo a extremo", "required": true, "params": {"node_ids": ["tests/test_api_flow.py::test_full_vertical_flow"]}},
+        {"id": "REQ-001-C", "type": "pytest", "criterion": "Se rechazan archivos peligrosos", "required": true, "params": {"node_ids": ["tests/test_api_flow.py::test_dangerous_upload_is_rejected"]}}
+      ]
+    },
+    {
+      "id": "REQ-002",
+      "title": "Análisis estático de código fuente",
+      "description": "Análisis de Python (AST) y JavaScript/TypeScript (parser) con hallazgos y evidencia.",
+      "source": {"document": "SAAS REA", "section": "§6.1/§7", "page": null},
+      "acceptance_criteria": [
+        "Existen analizadores de Python y de JS/TS",
+        "El análisis produce hallazgos con niveles de evidencia"
+      ],
+      "dependencies": ["REQ-001"],
+      "related_files": ["app/engines/analysis/python_analyzer.py", "app/engines/analysis/js_analyzer.py"],
+      "checks": [
+        {"id": "REQ-002-A", "type": "file_exists", "target": "app/engines/analysis/python_analyzer.py", "criterion": "Existe el analizador de Python", "required": true, "params": {"min_bytes": 200}},
+        {"id": "REQ-002-B", "type": "file_exists", "target": "app/engines/analysis/js_analyzer.py", "criterion": "Existe el analizador de JS/TS", "required": true, "params": {"min_bytes": 200}},
+        {"id": "REQ-002-C", "type": "symbol_present", "target": "app/engines/analysis/source_analysis.py", "criterion": "El orquestador produce hallazgos", "required": true, "params": {"pattern": "def run_source_analysis"}}
+      ]
+    },
+    {
+      "id": "REQ-003",
+      "title": "Grafo de arquitectura",
+      "description": "Construcción de un grafo de nodos y aristas con niveles de evidencia.",
+      "source": {"document": "SAAS REA", "section": "§7", "page": null},
+      "acceptance_criteria": [
+        "Existe el constructor de grafo",
+        "El grafo soporta múltiples análisis sobre contenidos equivalentes"
+      ],
+      "dependencies": ["REQ-002"],
+      "related_files": ["app/engines/graph/architecture_graph.py"],
+      "checks": [
+        {"id": "REQ-003-A", "type": "file_exists", "target": "app/engines/graph/architecture_graph.py", "criterion": "Existe el constructor de grafo", "required": true, "params": {"min_bytes": 200}},
+        {"id": "REQ-003-B", "type": "pytest", "criterion": "El grafo soporta análisis repetidos sin colisión de claves", "required": true, "params": {"node_ids": ["tests/test_api_flow.py::test_multiple_analyses_same_content_do_not_collide"]}}
+      ]
+    },
+    {
+      "id": "REQ-004",
+      "title": "Gestión de cambios",
+      "description": "Ciclo PROPOSED→APPROVED→APPLIED→VALIDATED→ROLLED_BACK con hashes y diffs.",
+      "source": {"document": "SAAS REA", "section": "§15", "page": null},
+      "acceptance_criteria": [
+        "Existe el servicio de cambios",
+        "El ciclo completo funciona con verificación de integridad",
+        "No hay implementación incompleta declarada como terminada"
+      ],
+      "dependencies": ["REQ-001"],
+      "related_files": ["app/services/change_service.py"],
+      "checks": [
+        {"id": "REQ-004-A", "type": "file_exists", "target": "app/services/change_service.py", "criterion": "Existe el servicio de cambios", "required": true, "params": {"min_bytes": 500}},
+        {"id": "REQ-004-B", "type": "no_marker", "target": "app/services/change_service.py", "criterion": "No hay implementación incompleta declarada como terminada", "required": true, "params": {}},
+        {"id": "REQ-004-C", "type": "pytest", "criterion": "El ciclo completo funciona con verificación de integridad", "required": true, "params": {"node_ids": ["tests/test_change_management.py"]}}
+      ]
+    },
+    {
+      "id": "REQ-005",
+      "title": "Migración tecnológica Gemini→NIM",
+      "description": "Detección de uso de Gemini, matriz de compatibilidad y plan de migración.",
+      "source": {"document": "SAAS REA", "section": "§11/§12", "page": null},
+      "acceptance_criteria": [
+        "Existe el servicio de migración",
+        "Se generan plan y diffs verificables"
+      ],
+      "dependencies": ["REQ-002"],
+      "related_files": ["app/services/migration_service.py"],
+      "checks": [
+        {"id": "REQ-005-A", "type": "file_exists", "target": "app/services/migration_service.py", "criterion": "Existe el servicio de migración", "required": true, "params": {"min_bytes": 500}},
+        {"id": "REQ-005-B", "type": "pytest", "criterion": "Se generan plan y diffs verificables", "required": true, "params": {"node_ids": ["tests/test_migration.py"]}}
+      ]
+    },
+    {
+      "id": "REQ-006",
+      "title": "Integración con IA (NVIDIA NIM)",
+      "description": "Cliente NIM con verificación de credenciales y modelo.",
+      "source": {"document": "SAAS REA", "section": "§13", "page": null},
+      "acceptance_criteria": [
+        "Existe el cliente NIM",
+        "No hay secretos embebidos en el código del cliente",
+        "El cliente se comporta correctamente ante respuestas y errores"
+      ],
+      "dependencies": [],
+      "related_files": ["app/engines/migration/nim_client.py"],
+      "checks": [
+        {"id": "REQ-006-A", "type": "file_exists", "target": "app/engines/migration/nim_client.py", "criterion": "Existe el cliente NIM", "required": true, "params": {"min_bytes": 300}},
+        {"id": "REQ-006-B", "type": "secret_scan", "target": "app/engines/migration/nim_client.py", "criterion": "No hay secretos embebidos en el código del cliente", "required": true, "params": {}},
+        {"id": "REQ-006-C", "type": "pytest", "criterion": "El cliente se comporta correctamente (respuestas y errores)", "required": true, "params": {"node_ids": ["tests/test_nim_client.py"]}}
+      ]
+    },
+    {
+      "id": "REQ-007",
+      "title": "Generación de código asistida por IA",
+      "description": "Generar/reparar código con verificación de sintaxis antes de registrar el cambio.",
+      "source": {"document": "SAAS REA", "section": "§10", "page": null},
+      "acceptance_criteria": [
+        "Existe el servicio de generación",
+        "Se rechaza código generado con sintaxis inválida",
+        "Se exige consentimiento de transmisión"
+      ],
+      "dependencies": ["REQ-006", "REQ-004"],
+      "related_files": ["app/services/generation_service.py"],
+      "checks": [
+        {"id": "REQ-007-A", "type": "file_exists", "target": "app/services/generation_service.py", "criterion": "Existe el servicio de generación", "required": true, "params": {"min_bytes": 500}},
+        {"id": "REQ-007-B", "type": "pytest", "criterion": "Se rechaza código con sintaxis inválida y se exige consentimiento", "required": true, "params": {"node_ids": ["tests/test_generation.py"]}}
+      ]
+    },
+    {
+      "id": "REQ-008",
+      "title": "Seguridad e aislamiento",
+      "description": "Sandbox, guard de red, límites de tasa, aislamiento por organización y RBAC.",
+      "source": {"document": "SAAS REA", "section": "§14/§19.3", "page": null},
+      "acceptance_criteria": [
+        "Existen los controles de aislamiento (sandbox y red)",
+        "Las pruebas de seguridad pasan (accesos y permisos)",
+        "El limitador de tasa es compartido y correcto"
+      ],
+      "dependencies": [],
+      "related_files": ["app/core/sandbox.py", "app/core/net_guard.py", "app/core/rate_limit.py"],
+      "checks": [
+        {"id": "REQ-008-A", "type": "file_exists", "target": "app/core/sandbox.py", "criterion": "Existen los controles de aislamiento (sandbox)", "required": true, "params": {"min_bytes": 200}},
+        {"id": "REQ-008-B", "type": "file_exists", "target": "app/core/net_guard.py", "criterion": "Existen los controles de aislamiento (red)", "required": true, "params": {"min_bytes": 200}},
+        {"id": "REQ-008-C", "type": "pytest", "criterion": "Las pruebas de seguridad pasan", "required": true, "params": {"node_ids": ["tests/test_security.py"]}},
+        {"id": "REQ-008-D", "type": "pytest", "criterion": "El limitador de tasa es correcto", "required": true, "params": {"node_ids": ["tests/test_rate_limit_backend.py"]}}
+      ]
+    },
+    {
+      "id": "REQ-009",
+      "title": "Cola de trabajos",
+      "description": "Ejecución inline o con worker externo, con reclamo atómico y recuperación de huérfanos.",
+      "source": {"document": "SAAS REA", "section": "§4.3", "page": null},
+      "acceptance_criteria": [
+        "Existe el worker externo",
+        "El reclamo de trabajos y la recuperación funcionan"
+      ],
+      "dependencies": [],
+      "related_files": ["app/worker.py"],
+      "checks": [
+        {"id": "REQ-009-A", "type": "file_exists", "target": "app/worker.py", "criterion": "Existe el worker externo", "required": true, "params": {"min_bytes": 300}},
+        {"id": "REQ-009-B", "type": "pytest", "criterion": "El reclamo de trabajos y la recuperación funcionan", "required": true, "params": {"node_ids": ["tests/test_worker.py"]}}
+      ]
+    },
+    {
+      "id": "REQ-010",
+      "title": "Persistencia PostgreSQL",
+      "description": "Ejecutar la misma capa de repositorio sobre PostgreSQL mediante un adaptador de dialecto.",
+      "source": {"document": "SAAS REA", "section": "§4.4", "page": null},
+      "acceptance_criteria": [
+        "Existe el adaptador de dialecto PostgreSQL",
+        "El flujo vertical y el worker funcionan sobre PostgreSQL"
+      ],
+      "dependencies": ["REQ-001"],
+      "related_files": ["app/db/pg.py"],
+      "checks": [
+        {"id": "REQ-010-A", "type": "file_exists", "target": "app/db/pg.py", "criterion": "Existe el adaptador de dialecto PostgreSQL", "required": true, "params": {"min_bytes": 300}},
+        {"id": "REQ-010-B", "type": "pytest", "criterion": "El flujo vertical y el worker funcionan sobre PostgreSQL", "required": true, "params": {"node_ids": ["tests/test_postgres_persistence.py"]}}
+      ]
+    },
+    {
+      "id": "REQ-012",
+      "title": "Integridad estructural de los módulos núcleo",
+      "description": "Los módulos esenciales del backend existen y no están vacíos ni con marcadores pendientes.",
+      "source": {"document": "SAAS REA", "section": "§3/§4.4", "page": null},
+      "acceptance_criteria": [
+        "Existen la app, el esquema de base de datos y el enrutador de la API",
+        "No hay marcadores de implementación pendiente en los módulos núcleo"
+      ],
+      "dependencies": [],
+      "related_files": ["app/main.py", "app/db/database.py", "app/api/v1/router.py"],
+      "checks": [
+        {"id": "REQ-012-A", "type": "file_exists", "target": "app/main.py", "criterion": "Existe la app", "required": true, "params": {"min_bytes": 200}},
+        {"id": "REQ-012-B", "type": "file_exists", "target": "app/db/database.py", "criterion": "Existe el esquema de base de datos", "required": true, "params": {"min_bytes": 200}},
+        {"id": "REQ-012-C", "type": "file_exists", "target": "app/api/v1/router.py", "criterion": "Existe el enrutador de la API", "required": true, "params": {"min_bytes": 200}},
+        {"id": "REQ-012-D", "type": "no_marker", "target": "app/main.py", "criterion": "No hay marcadores de implementación pendiente en los módulos núcleo", "required": true, "params": {}}
+      ]
+    },
+    {
+      "id": "REQ-011",
+      "title": "Análisis estático de binarios",
+      "description": "Inspección de solo lectura de formatos binarios con parsers dedicados.",
+      "source": {"document": "SAAS REA", "section": "§6.2", "page": null},
+      "acceptance_criteria": [
+        "Existen los parsers de formatos binarios",
+        "El análisis de binarios produce hechos verificables"
+      ],
+      "dependencies": [],
+      "related_files": ["app/engines/binary_analysis/analyzer.py"],
+      "checks": [
+        {"id": "REQ-011-A", "type": "file_exists", "target": "app/engines/binary_analysis/analyzer.py", "criterion": "Existe el analizador de binarios", "required": true, "params": {"min_bytes": 200}},
+        {"id": "REQ-011-B", "type": "pytest", "criterion": "El análisis de binarios produce hechos verificables", "required": true, "params": {"node_ids": ["tests/test_binary_analysis.py"]}}
+      ]
+    }
+  ]
+}

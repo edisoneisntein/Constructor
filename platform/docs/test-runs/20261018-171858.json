@@ -1,0 +1,29 @@
+{
+  "timestamp_utc": "2026-10-18T17:18:58.524586+00:00",
+  "label": "Fase 12 W12.2: build/run contenedores + fix borde transaccional",
+  "command": "/usr/local/bin/python3 -m pytest -q --junitxml /var/folders/33/yvb6xpf56x79gxrtx14qb48w0000gn/T/tmp3nsrzweb-junit.xml",
+  "exit_code": 0,
+  "success": true,
+  "duration_seconds": 16.51,
+  "counts": {
+    "passed": 80,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "environment": {
+    "python_version": "3.12.3",
+    "pytest_version": "9.1.1",
+    "platform": "Darwin",
+    "machine": "x86_64"
+  },
+  "vcs": {
+    "commit": null,
+    "branch": null,
+    "dirty": false
+  },
+  "output_tail": [
+    "........................................................................ [ 90%]",
+    "........                                                                 [100%]"
+  ]
+}

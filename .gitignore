@@ -1,0 +1,35 @@
+# Secretos: nunca versionar. Ver *.example para las plantillas.
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+
+# Datos locales, artefactos subidos y logs
+var/
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+*.log
+nohup.out
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+# Node / Next / Playwright
+node_modules/
+.next/
+test-results/
+playwright-report/
+e2e-report.json
+*.tsbuildinfo
+
+# Backups y material local de referencia (no versionado)
+*.bak
+SAAS_REA_clean.txt
+SAAS_REA_extracted.txt
+SAAS_REA_raw.txt

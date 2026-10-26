@@ -1,0 +1,29 @@
+{
+  "timestamp_utc": "2026-10-18T19:23:47.377937+00:00",
+  "label": "Fase 16 PostgreSQL (§4.4): adaptador de dialecto + flujo vertical en PG",
+  "command": "/usr/local/bin/python3 -m pytest -q --junitxml /var/folders/33/yvb6xpf56x79gxrtx14qb48w0000gn/T/tmp30695rk7-junit.xml",
+  "exit_code": 0,
+  "success": true,
+  "duration_seconds": 28.55,
+  "counts": {
+    "passed": 122,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 2
+  },
+  "environment": {
+    "python_version": "3.12.3",
+    "pytest_version": "9.1.1",
+    "platform": "Darwin",
+    "machine": "x86_64"
+  },
+  "vcs": {
+    "commit": null,
+    "branch": null,
+    "dirty": false
+  },
+  "output_tail": [
+    "...............................................s.............s.......... [ 58%]",
+    "....................................................                     [100%]"
+  ]
+}

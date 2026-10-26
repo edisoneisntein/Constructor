@@ -1,0 +1,17 @@
+# Runtime (instalado y verificado en el entorno: Python 3.12)
+fastapi==0.139.0
+uvicorn==0.49.0
+pydantic==2.13.4
+email-validator==2.3.0
+httpx==0.28.1
+python-multipart==0.0.32
+python-dotenv==1.2.2
+psycopg[binary]==3.2.3
+
+# Pruebas
+pytest==9.1.1
+
+# Nota: PyYAML ya está disponible para parsear configuración.
+# Persistencia (§4.4): SQLite (stdlib) por defecto y PostgreSQL opcional
+# (``SIREP_DATABASE_URL``) tras la misma capa de repositorio y un adaptador de
+# dialecto; no se fija SQLAlchemy.

@@ -1,0 +1,73 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    environment:
+      SIREP_ENV: production
+      SIREP_REA_ENABLED: "true"
+      SIREP_ALLOWED_ORIGINS: "${SIREP_ALLOWED_ORIGINS:-http://localhost:3000}"
+      SIREP_SECRET_KEY: "${SIREP_SECRET_KEY:-change-me-in-production}"
+      SIREP_JOB_QUEUE: "${SIREP_JOB_QUEUE:-external}"
+      SIREP_RATE_LIMIT_BACKEND: "${SIREP_RATE_LIMIT_BACKEND:-database}"
+      SIREP_NIM_API_KEY: "${SIREP_NIM_API_KEY:-}"
+      SIREP_NIM_BASE_URL: "${SIREP_NIM_BASE_URL:-https://integrate.api.nvidia.com/v1}"
+      SIREP_NIM_MODEL: "${SIREP_NIM_MODEL:-nvidia/nemotron-3-super-120b-a12b}"
+      SIREP_NIM_TIMEOUT_SECONDS: "${SIREP_NIM_TIMEOUT_SECONDS:-600}"
+      SIREP_DATABASE_URL: "${SIREP_DATABASE_URL:-}"
+    dns:
+      - "${SIREP_DNS_1:-1.1.1.1}"
+      - "${SIREP_DNS_2:-8.8.8.8}"
+    volumes:
+      - backend_data:/data
+    ports:
+      - "8000:8000"
+
+  worker:
+    build:
+      context: ./backend
+    command: ["python", "-m", "app.worker"]
+    environment:
+      SIREP_ENV: production
+      SIREP_REA_ENABLED: "true"
+      SIREP_SECRET_KEY: "${SIREP_SECRET_KEY:-change-me-in-production}"
+      SIREP_JOB_QUEUE: "${SIREP_JOB_QUEUE:-external}"
+      SIREP_NIM_API_KEY: "${SIREP_NIM_API_KEY:-}"
+      SIREP_NIM_BASE_URL: "${SIREP_NIM_BASE_URL:-https://integrate.api.nvidia.com/v1}"
+      SIREP_NIM_MODEL: "${SIREP_NIM_MODEL:-nvidia/nemotron-3-super-120b-a12b}"
+      SIREP_NIM_TIMEOUT_SECONDS: "${SIREP_NIM_TIMEOUT_SECONDS:-600}"
+      SIREP_DATABASE_URL: "${SIREP_DATABASE_URL:-}"
+    dns:
+      - "${SIREP_DNS_1:-1.1.1.1}"
+      - "${SIREP_DNS_2:-8.8.8.8}"
+    volumes:
+      - backend_data:/data
+    depends_on:
+      - backend
+
+  # PostgreSQL opcional (§4.4). Activar con: docker compose --profile postgres up -d
+  # y exportar SIREP_DATABASE_URL=postgresql://sirep:sirep@db:5432/sirep
+  db:
+    image: postgres:16-alpine
+    profiles: ["postgres"]
+    environment:
+      POSTGRES_USER: "${SIREP_PG_USER:-sirep}"
+      POSTGRES_PASSWORD: "${SIREP_PG_PASSWORD:-sirep}"
+      POSTGRES_DB: "${SIREP_PG_DB:-sirep}"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "${SIREP_PG_PORT:-5432}:5432"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_BASE: "http://localhost:8000"
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+
+volumes:
+  backend_data:
+  db_data:

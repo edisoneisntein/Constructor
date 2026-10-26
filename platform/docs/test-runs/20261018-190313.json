@@ -1,0 +1,29 @@
+{
+  "timestamp_utc": "2026-10-18T19:03:13.479628+00:00",
+  "label": "Fase 15 generación NIM (§10) + verificación",
+  "command": "/usr/local/bin/python3 -m pytest -q --junitxml /var/folders/33/yvb6xpf56x79gxrtx14qb48w0000gn/T/tmp9g73noid-junit.xml",
+  "exit_code": 0,
+  "success": true,
+  "duration_seconds": 22.502,
+  "counts": {
+    "passed": 118,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 2
+  },
+  "environment": {
+    "python_version": "3.12.3",
+    "pytest_version": "9.1.1",
+    "platform": "Darwin",
+    "machine": "x86_64"
+  },
+  "vcs": {
+    "commit": null,
+    "branch": null,
+    "dirty": false
+  },
+  "output_tail": [
+    "...............................................s.............s.......... [ 60%]",
+    "................................................                         [100%]"
+  ]
+}

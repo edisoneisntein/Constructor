@@ -1,0 +1,29 @@
+{
+  "timestamp_utc": "2026-10-18T18:48:57.737610+00:00",
+  "label": "Fase 14 integracion NVIDIA NIM (proveedor unico de IA)",
+  "command": "/usr/local/bin/python3 -m pytest -q --junitxml /var/folders/33/yvb6xpf56x79gxrtx14qb48w0000gn/T/tmpkmelgs9w-junit.xml",
+  "exit_code": 0,
+  "success": true,
+  "duration_seconds": 21.992,
+  "counts": {
+    "passed": 111,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 1
+  },
+  "environment": {
+    "python_version": "3.12.3",
+    "pytest_version": "9.1.1",
+    "platform": "Darwin",
+    "machine": "x86_64"
+  },
+  "vcs": {
+    "commit": null,
+    "branch": null,
+    "dirty": false
+  },
+  "output_tail": [
+    ".....................................................s.................. [ 64%]",
+    "........................................                                 [100%]"
+  ]
+}

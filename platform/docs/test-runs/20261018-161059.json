@@ -1,0 +1,28 @@
+{
+  "timestamp_utc": "2026-10-18T16:10:59.397359+00:00",
+  "label": "Fase 11 — seguridad y escalabilidad",
+  "command": "/usr/local/bin/python3 -m pytest -q --junitxml /var/folders/33/yvb6xpf56x79gxrtx14qb48w0000gn/T/tmpep10xfqk-junit.xml",
+  "exit_code": 0,
+  "success": true,
+  "duration_seconds": 10.79,
+  "counts": {
+    "passed": 61,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "environment": {
+    "python_version": "3.12.3",
+    "pytest_version": "9.1.1",
+    "platform": "Darwin",
+    "machine": "x86_64"
+  },
+  "vcs": {
+    "commit": null,
+    "branch": null,
+    "dirty": false
+  },
+  "output_tail": [
+    ".............................................................            [100%]"
+  ]
+}
