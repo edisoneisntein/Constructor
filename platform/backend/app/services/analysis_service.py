@@ -214,25 +214,39 @@ def run_analysis_job(
     database = get_database()
     conn = database.connect()
 
-    def _heartbeat() -> None:
+    def _heartbeat() -> bool:
         if worker_id:
-            repo.heartbeat_job(conn, job_id, worker_id=worker_id, now=utcnow_iso())
+            owned = repo.heartbeat_job(conn, job_id, worker_id=worker_id, now=utcnow_iso())
             conn.commit()
+            return owned
+        return True
+
+    def _update(**fields) -> bool:
+        if worker_id:
+            return repo.update_job(conn, job_id, claimed_by=worker_id, **fields)
+        return repo.update_job(conn, job_id, **fields)
 
     workspace = settings.storage_root / "workspaces" / job_id
     try:
-        repo.update_job(conn, job_id, status="ANALYZING", phase="extracting", started_at=utcnow_iso())
+        if worker_id and not _heartbeat():
+            _logger.warning("analysis_job_ownership_lost", extra={"job_id": job_id, "worker_id": worker_id})
+            return
+        if not worker_id and repo.is_cancel_requested(conn, job_id):
+            repo.update_job(conn, job_id, status="CANCELLED", phase="cancelled", finished_at=utcnow_iso())
+            conn.commit()
+            return
+        _update(status="ANALYZING", phase="extracting", started_at=utcnow_iso())
         _heartbeat()
         artifact = repo.get_artifact(conn, artifact_id, organization_id)
         if artifact is None:
-            repo.update_job(conn, job_id, status="FAILED", error_code="artifact_missing", error_message="Artefacto no encontrado.", finished_at=utcnow_iso())
+            _update(status="FAILED", error_code="artifact_missing", error_message="Artefacto no encontrado.", finished_at=utcnow_iso())
             conn.commit()
             return
 
         report = safe_extract(Path(artifact["storage_path"]), workspace, _limits(settings))
 
         def progress(phase: str, completed: int, total: int) -> None:
-            repo.update_job(conn, job_id, phase=phase, progress_completed=completed, progress_total=total)
+            _update(phase=phase, progress_completed=completed, progress_total=total)
             _heartbeat()
             conn.commit()
 
@@ -260,18 +274,18 @@ def run_analysis_job(
                 sandbox_limits=limits,
             )
         except KeyboardInterrupt:
-            repo.update_job(conn, job_id, status="CANCELLED", phase="cancelled", finished_at=utcnow_iso())
+            _update(status="CANCELLED", phase="cancelled", finished_at=utcnow_iso())
             conn.commit()
             repo.record_audit(conn, action="analysis.cancelled", created_at=utcnow_iso(), organization_id=organization_id, target_type="analysis", target_id=job_id)
             conn.commit()
             return
 
         if is_cancelled():
-            repo.update_job(conn, job_id, status="CANCELLED", phase="cancelled", finished_at=utcnow_iso())
+            _update(status="CANCELLED", phase="cancelled", finished_at=utcnow_iso())
             conn.commit()
             return
 
-        repo.update_job(conn, job_id, status="GRAPH_BUILDING", phase="persisting")
+        _update(status="GRAPH_BUILDING", phase="persisting")
         conn.commit()
         with conn:
             if outcome.findings:
@@ -287,9 +301,7 @@ def run_analysis_job(
         summary["limitations"] = outcome.limitations
         summary["progress_formula"] = PROGRESS_FORMULA
         final_status = "COMPLETED_WITH_LIMITATIONS" if outcome.limitations else "COMPLETED"
-        repo.update_job(
-            conn,
-            job_id,
+        _update(
             status=final_status,
             phase="done",
             result_summary=json.dumps(summary, ensure_ascii=False),
@@ -314,9 +326,7 @@ def run_analysis_job(
         )
         conn.commit()
     except UnsafeArchiveError as error:
-        repo.update_job(
-            conn,
-            job_id,
+        _update(
             status="FAILED",
             error_code=error.code,
             error_message=error.message,
@@ -325,9 +335,7 @@ def run_analysis_job(
         conn.commit()
     except Exception as error:  # noqa: BLE001
         _logger.exception("analysis_failed", extra={"job_id": job_id})
-        repo.update_job(
-            conn,
-            job_id,
+        _update(
             status="FAILED",
             error_code="internal_error",
             error_message=str(error)[:500],
@@ -363,12 +371,11 @@ def build_analysis_summary(conn: sqlite3.Connection, *, analysis_id: str, organi
     job = repo.get_job(conn, analysis_id, organization_id)
     if job is None:
         raise ValidationAppError("Análisis no encontrado.", status_code=404)
-    findings_total, _ = repo.list_findings(conn, analysis_id=analysis_id, organization_id=organization_id, limit=1)
     by_severity = repo.count_findings_by(conn, analysis_id=analysis_id, organization_id=organization_id, column="severity")
     by_category = repo.count_findings_by(conn, analysis_id=analysis_id, organization_id=organization_id, column="category")
-    nodes = repo.list_nodes(conn, analysis_id, organization_id)
-    edges = repo.list_edges(conn, analysis_id, organization_id)
-    deps = repo.list_dependencies(conn, analysis_id, organization_id)
+    node_count = repo.count_nodes(conn, analysis_id, organization_id)
+    edge_count = repo.count_edges(conn, analysis_id, organization_id)
+    dependency_count = repo.count_dependencies(conn, analysis_id, organization_id)
     summary = json.loads(job["result_summary"]) if job.get("result_summary") else {}
     languages = list((summary.get("languages") or {}).keys())
     finding_count = sum(by_severity.values())
@@ -377,9 +384,9 @@ def build_analysis_summary(conn: sqlite3.Connection, *, analysis_id: str, organi
         "finding_count": finding_count,
         "findings_by_severity": by_severity,
         "findings_by_category": by_category,
-        "node_count": len(nodes),
-        "edge_count": len(edges),
-        "dependency_count": len(deps),
+        "node_count": node_count,
+        "edge_count": edge_count,
+        "dependency_count": dependency_count,
         "languages": languages,
         "files_analyzed": int(summary.get("files_analyzed", 0)),
         "progress_formula": PROGRESS_FORMULA,

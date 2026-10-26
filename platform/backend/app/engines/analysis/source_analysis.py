@@ -94,8 +94,11 @@ def _guess_provider_from_call(callee: str) -> str | None:
 def _scan_model_strings(source: str) -> list[tuple[str, int]]:
     text = source[:_MODEL_SCAN_LIMIT]
     results: list[tuple[str, int]] = []
+    line = 1
+    cursor = 0
     for match in _MODEL_TEXT_RE.finditer(text):
-        line = text.count("\n", 0, match.start()) + 1
+        line += text.count("\n", cursor, match.start())
+        cursor = match.start()
         results.append((match.group(1), line))
     return results
 

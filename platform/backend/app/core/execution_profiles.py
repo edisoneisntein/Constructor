@@ -100,8 +100,19 @@ def is_profile_enabled(profile: ExecutionProfile, settings: Settings) -> bool:
 
 
 def active_profile(settings: Settings) -> ExecutionProfile:
-    """Perfil de ejecución vigente según la configuración."""
-    return parse_profile(settings.execution_profile)
+    """Perfil de ejecución vigente según la configuración.
+
+    Falla en cerrado: si se configura ``HIGH_RISK_DYNAMIC_ANALYSIS`` sin la
+    bandera explícita ``execution_allow_high_risk``, el perfil efectivo degrada
+    a ``STATIC_ANALYSIS`` para que el código del proyecto nunca se ejecute.
+    """
+    profile = parse_profile(settings.execution_profile)
+    if (
+        profile is ExecutionProfile.HIGH_RISK_DYNAMIC_ANALYSIS
+        and not settings.execution_allow_high_risk
+    ):
+        return DEFAULT_PROFILE
+    return profile
 
 
 def profile_executes_project_code(settings: Settings) -> bool:

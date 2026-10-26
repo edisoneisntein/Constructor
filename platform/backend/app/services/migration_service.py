@@ -149,6 +149,7 @@ def build_nim_client(settings: Settings, *, transport=None) -> NimClient:
         api_key=settings.nim_api_key,
         timeout_seconds=settings.nim_timeout_seconds,
         transport=transport,
+        outbound_allowed_hosts=list(settings.outbound_allowed_hosts),
     )
 
 

@@ -28,6 +28,7 @@ from app.db import repositories as repo
 from app.engines.change_management.change_engine import looks_like_test
 from app.engines.features import nim_codegen
 from app.engines.features.nim_codegen import CodegenRequest
+from app.engines.ingestion.safe_paths import PathLimits, assert_within, validate_relative_path
 from app.engines.ingestion.safe_zip import ExtractionLimits, safe_extract
 from app.services import change_service
 from app.services.change_service import FileEdit
@@ -53,7 +54,8 @@ def _limits(settings: Settings) -> ExtractionLimits:
 def _read_text(path: Path, limit: int) -> str | None:
     if not path.is_file():
         return None
-    data = path.read_bytes()
+    with path.open("rb") as handle:
+        data = handle.read(limit + 1)
     if len(data) > limit:
         return data[:limit].decode("utf-8", errors="replace") + "\n... (truncado)"
     return data.decode("utf-8", errors="replace")
@@ -79,11 +81,15 @@ def _build_context(
             break
 
     target_content = None
+    target_relative: str | None = None
     if target_path:
-        target_content = _read_text(workspace / target_path, nim_codegen.MAX_TARGET_FILE_BYTES)
+        relative = validate_relative_path(target_path, PathLimits())
+        target_relative = relative.as_posix()
+        target_file = assert_within(workspace, workspace / relative)
+        target_content = _read_text(target_file, nim_codegen.MAX_TARGET_FILE_BYTES)
 
-    if target_content is not None:
-        index = [path for path in index if path != target_path]
+    if target_content is not None and target_relative is not None:
+        index = [path for path in index if path != target_relative]
 
     context: list[tuple[str, str]] = []
     total = 0

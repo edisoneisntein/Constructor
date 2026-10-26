@@ -244,25 +244,27 @@ def _env_operations(path: str, tree: ast.AST, language: str) -> list[Operation]:
     return operations
 
 
+_JS_PATTERNS: list[tuple[str, str, re.Pattern[str]]] = [
+    ("sdk_import", "@google", re.compile(r"@google/(generative-ai|genai)")),
+    ("client_init", "GoogleGenerativeAI", re.compile(r"new\s+GoogleGenerativeAI")),
+    ("client_init", "getGenerativeModel", re.compile(r"getGenerativeModel\s*\(")),
+    ("streaming", "generateContentStream", re.compile(r"generateContentStream\s*\(")),
+    ("generation", "generateContent", re.compile(r"generateContent\s*\(")),
+    ("generation", "startChat", re.compile(r"startChat\s*\(")),
+    ("embedding", "embedContent", re.compile(r"(embedContent|batchEmbedContents)\s*\(")),
+    ("structured_output", "responseSchema", re.compile(r"responseSchema|responseMimeType")),
+    ("tool_calling", "functionDeclarations", re.compile(r"functionDeclarations|tools\s*:")),
+    ("multimodal", "inlineData", re.compile(r"inlineData|image_url|mimeType")),
+    ("rest_call", "generativelanguage", re.compile(r"generativelanguage\.googleapis\.com")),
+    ("env_var", "GEMINI_API_KEY", re.compile(r"process\.env\.(GEMINI_API_KEY|GOOGLE_API_KEY)|GEMINI_API_KEY")),
+]
+
+
 def _js_operations(path: str, source: str) -> list[Operation]:
     operations: list[Operation] = []
     cleaned = _strip_js_comments(source)
-    patterns: list[tuple[str, str, re.Pattern[str]]] = [
-        ("sdk_import", "@google", re.compile(r"@google/(generative-ai|genai)")),
-        ("client_init", "GoogleGenerativeAI", re.compile(r"new\s+GoogleGenerativeAI")),
-        ("client_init", "getGenerativeModel", re.compile(r"getGenerativeModel\s*\(")),
-        ("streaming", "generateContentStream", re.compile(r"generateContentStream\s*\(")),
-        ("generation", "generateContent", re.compile(r"generateContent\s*\(")),
-        ("generation", "startChat", re.compile(r"startChat\s*\(")),
-        ("embedding", "embedContent", re.compile(r"(embedContent|batchEmbedContents)\s*\(")),
-        ("structured_output", "responseSchema", re.compile(r"responseSchema|responseMimeType")),
-        ("tool_calling", "functionDeclarations", re.compile(r"functionDeclarations|tools\s*:")),
-        ("multimodal", "inlineData", re.compile(r"inlineData|image_url|mimeType")),
-        ("rest_call", "generativelanguage", re.compile(r"generativelanguage\.googleapis\.com")),
-        ("env_var", "GEMINI_API_KEY", re.compile(r"process\.env\.(GEMINI_API_KEY|GOOGLE_API_KEY)|GEMINI_API_KEY")),
-    ]
     for line_no, line in enumerate(cleaned.splitlines(), start=1):
-        for kind, label, pattern in patterns:
+        for kind, label, pattern in _JS_PATTERNS:
             if pattern.search(line):
                 operations.append(
                     Operation(

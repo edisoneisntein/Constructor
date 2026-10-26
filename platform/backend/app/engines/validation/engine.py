@@ -249,18 +249,7 @@ def _run_pytest(check_id, criterion, params, workspace, settings=None) -> CheckR
         command, workspace, check_id, "pytest", criterion, ", ".join(node_ids), params,
         settings, junit_path=report_path,
     )
-    counts = _read_junit_counts(report_path)
     shutil.rmtree(report_dir, ignore_errors=True)
-    if counts is None:
-        result.limitations.append(
-            "No se pudo leer el informe JUnit; se interpretó la salida de texto."
-        )
-    else:
-        result.limitations.append(
-            "Contadores JUnit: "
-            f"{counts['passed']} passed, {counts['failed']} failed, "
-            f"{counts['errors']} errors, {counts['skipped']} skipped."
-        )
     return result
 
 
@@ -315,7 +304,18 @@ def _profile_blocks_execution(settings) -> str | None:
     )
 
 
-def _execute(command, workspace, check_id, check_type, criterion, target, params, settings=None, junit_path=None) -> CheckResult:
+def _execute(
+    command,
+    workspace,
+    check_id,
+    check_type,
+    criterion,
+    target,
+    params,
+    settings=None,
+    junit_path=None,
+    junit_counts: dict[str, int] | None = None,
+) -> CheckResult:
     timeout = float(params.get("timeout", 0) or 0)
     if timeout <= 0:
         timeout = float(getattr(settings, "validation_timeout_seconds", 180) or 180)
@@ -351,10 +351,25 @@ def _execute(command, workspace, check_id, check_type, criterion, target, params
             limitations=[] if passed else ["Errores de compilación estática."],
         )
 
-    return _interpret_pytest(
-        check_id, criterion, target, completed.returncode, output, duration_ms, command,
-        junit_counts=_read_junit_counts(junit_path) if junit_path else None,
+    counts = junit_counts if junit_counts is not None else (
+        _read_junit_counts(junit_path) if junit_path else None
     )
+    result = _interpret_pytest(
+        check_id, criterion, target, completed.returncode, output, duration_ms, command,
+        junit_counts=counts,
+    )
+    if junit_path is not None:
+        if counts is None:
+            result.limitations.append(
+                "No se pudo leer el informe JUnit; se interpretó la salida de texto."
+            )
+        else:
+            result.limitations.append(
+                "Contadores JUnit: "
+                f"{counts['passed']} passed, {counts['failed']} failed, "
+                f"{counts['errors']} errors, {counts['skipped']} skipped."
+            )
+    return result
 
 
 def _interpret_pytest(

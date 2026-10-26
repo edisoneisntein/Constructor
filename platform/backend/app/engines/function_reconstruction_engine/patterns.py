@@ -138,6 +138,9 @@ def extract_dependencies(code: str, func_info: FunctionInfo) -> DependencyInfo:
     reads = []
     writes = []
     calls = []
+    reads_seen: set[str] = set()
+    writes_seen: set[str] = set()
+    calls_seen: set[str] = set()
     
     try:
         tree = ast.parse(code)
@@ -151,20 +154,24 @@ def extract_dependencies(code: str, func_info: FunctionInfo) -> DependencyInfo:
                 continue  # Saltar la propia función
             # Variables simples (no atributos ni subscripts)
             if isinstance(node.ctx, ast.Load):
-                if node.id not in reads:
+                if node.id not in reads_seen:
+                    reads_seen.add(node.id)
                     reads.append(node.id)
             elif isinstance(node.ctx, ast.Store):
-                if node.id not in writes:
+                if node.id not in writes_seen:
+                    writes_seen.add(node.id)
                     writes.append(node.id)
         
         # Llamadas a funciones
         if isinstance(node, ast.Call):
             if isinstance(node.func, ast.Name):
-                if node.func.id not in calls:
+                if node.func.id not in calls_seen:
+                    calls_seen.add(node.func.id)
                     calls.append(node.func.id)
             elif isinstance(node.func, ast.Attribute):
                 func_name = f"{node.func.attr}"
-                if func_name not in calls:
+                if func_name not in calls_seen:
+                    calls_seen.add(func_name)
                     calls.append(func_name)
     
     return DependencyInfo(

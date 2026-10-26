@@ -185,24 +185,23 @@ def _parse_json_tolerant(candidate: str, raw: str) -> dict:
     ``content`` de un archivo). Un ``json.loads`` estricto los rechaza y aborta
     una generación que era válida. Se intenta, en orden: estricto, estricto con
     control chars permitidos y, por último, sin comas finales.
+
+    La normalización que elimina comas finales es perezosa: solo se aplica si el
+    parseo directo falla, de modo que el caso feliz no copia ni reescribe el
+    payload completo.
     """
-    attempts = (
-        candidate,
-        None,  # marca: usar strict=False
-        _strip_trailing_commas(candidate),
-    )
     last_error: json.JSONDecodeError | None = None
-    for attempt in attempts:
+    for strict in (True, False):
         try:
-            if attempt is None:
-                return json.loads(candidate, strict=False)
-            return json.loads(attempt)
+            return json.loads(candidate, strict=strict)
         except json.JSONDecodeError as exc:
             last_error = exc
-    try:
-        return json.loads(_strip_trailing_commas(candidate), strict=False)
-    except json.JSONDecodeError as exc:
-        last_error = exc
+    stripped = _strip_trailing_commas(candidate)
+    for strict in (True, False):
+        try:
+            return json.loads(stripped, strict=strict)
+        except json.JSONDecodeError as exc:
+            last_error = exc
     raise ValidationAppError(
         "La respuesta del modelo no es JSON válido.",
         details={"error": str(last_error), "preview": raw[:MAX_RAW_OUTPUT_PREVIEW]},

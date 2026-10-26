@@ -2,7 +2,7 @@
 
 ## Fuente de Verdad Absoluta
 
-**SAAS REA.docx** (`/Users/edisonrodriguez/Documents/SAAS REA.docx`) — 220.5KB, 211 párrafos, 13,702 caracteres.
+**SAAS REA.docx** (documento local del proyecto; no se versiona) — 220.5KB, 211 párrafos, 13,702 caracteres.
 
 Este documento es la fuente permanente de consulta para Constructor REA. Todas las decisiones de implementación deben alinearse con lo especificado en SAAS REA.docx.
 
@@ -52,6 +52,16 @@ Siguiendo el **IMPLEMENTATION PLAN** (`docs/official/IMPLEMENTATION_PLAN.md`):
 
 ---
 
+## Auditoría Técnica y Endurecimiento (2026-10-26)
+
+- **Informe completo:** `docs/audit/AUDIT_2026-10-26.md` (evidencia: análisis REA propio `COMPLETED` sobre 150 archivos, 1.289 nodos y 2.019 aristas; criterio: Remix VIP `auditor_elite`).
+- **P0 corregidos:** contención del workspace en generación (`target_path`), guard de salida SSRF en el cliente NIM, fail-closed del perfil `HIGH_RISK_DYNAMIC_ANALYSIS`, propiedad del trabajo (`claimed_by` en `update_job`/`heartbeat_job`) y carrera de cancelación inline.
+- **P1 corregidos:** memoria acotada en `extract_strings` (O(R)→O(K)), conteos agregados del grafo en el resumen/export, escaneo de modelos O(K·S)→O(S+K), parseo JSON tolerante perezoso, JUnit parseado una vez, dependencias O(U²)→O(U), regex a nivel de módulo, lectura acotada de contexto y cliente HTTP del frontend con timeout y base URL correcta (8000).
+- **Verificación real:** `pytest` EXIT 0 (176 pruebas, 6 saltadas) · `tsc --noEmit` EXIT 0 · 11 pruebas nuevas en `backend/tests/test_audit_hardening.py`. E2E Playwright no ejecutado (falta binario Chromium); PostgreSQL y NIM en vivo no ejecutados (saltados por defecto).
+- **Deuda priorizada pendiente:** scope multi-tenant del validator, `FOR UPDATE SKIP LOCKED` en el claim, autenticación de `/api/v1/metadata`, captura acotada de stdout del subproceso, ratio de compresión agregado en ZIP, división por agregados de `repositories.py`.
+
+---
+
 ## Entorno Actual
 
 - **Servidor:** FastAPI en `http://localhost:8001` (PID 37497, `--reload`)
@@ -85,5 +95,5 @@ Siguiendo el **IMPLEMENTATION PLAN** (`docs/official/IMPLEMENTATION_PLAN.md`):
 
 ---
 
-**Última actualización:** 2026-10-22
+**Última actualización:** 2026-10-26
 **Protocolo:** V.A.A. (Verdad Absoluta) — Directiva no negociable

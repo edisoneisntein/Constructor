@@ -17,6 +17,8 @@ from typing import Any
 
 import httpx
 
+from app.core.net_guard import validate_outbound_url
+
 DEFAULT_TIMEOUT_SECONDS = 30.0
 
 
@@ -48,11 +50,14 @@ class NimClient:
         api_key: str | None,
         timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS,
         transport: httpx.BaseTransport | None = None,
+        outbound_allowed_hosts: list[str] | None = None,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.timeout_seconds = timeout_seconds
         self._transport = transport
+        if self.base_url:
+            validate_outbound_url(self.base_url, allowlist=outbound_allowed_hosts)
 
     @property
     def configured(self) -> bool:

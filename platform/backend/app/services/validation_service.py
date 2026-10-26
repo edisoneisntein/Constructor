@@ -85,8 +85,9 @@ def run_validation(
         raise ValidationAppError("El registro de requisitos está vacío.")
 
     if requirement_ids:
-        selected = [r for r in all_requirements if r["id"] in set(requirement_ids)]
-        missing = set(requirement_ids) - {r["id"] for r in selected}
+        requested = set(requirement_ids)
+        selected = [r for r in all_requirements if r["id"] in requested]
+        missing = requested - {r["id"] for r in selected}
         if missing:
             raise ValidationAppError(f"Requisitos no encontrados: {sorted(missing)}")
     else:

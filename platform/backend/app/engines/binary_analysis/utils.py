@@ -67,51 +67,70 @@ def extract_strings(data: bytes, limits: StringLimits) -> tuple[list[str], list[
     """Extrae cadenas ASCII y UTF-16LE; separa un subconjunto relevante.
 
     Las cadenas son **evidencia contextual** (§6.2), no prueba de funcionalidad.
+
+    El recorrido es de un solo paso y con memoria acotada: se conservan solo las
+    ``max_strings`` primeras cadenas únicas y, dentro de cada corrida, los primeros
+    ``max_length`` bytes. El resultado es idéntico al de materializar todas las
+    corridas, pero la memoria deja de crecer con el tamaño del binario.
     """
-    ascii_strings: list[str] = []
-    current: list[str] = []
-    for byte in data:
-        if byte in _PRINTABLE:
-            current.append(chr(byte))
-        else:
-            if len(current) >= limits.min_length:
-                ascii_strings.append("".join(current)[: limits.max_length])
-            current = []
-    if len(current) >= limits.min_length:
-        ascii_strings.append("".join(current)[: limits.max_length])
-
-    utf16: list[str] = []
-    current16: list[str] = []
-    for index in range(0, len(data) - 1, 2):
-        low, high = data[index], data[index + 1]
-        if high == 0 and low in _PRINTABLE:
-            current16.append(chr(low))
-        else:
-            if len(current16) >= limits.min_length:
-                utf16.append("".join(current16)[: limits.max_length])
-            current16 = []
-    if len(current16) >= limits.min_length:
-        utf16.append("".join(current16)[: limits.max_length])
-
     seen: set[str] = set()
     unique: list[str] = []
-    for value in ascii_strings + utf16:
+
+    def _append(value: str) -> None:
         if value not in seen:
             seen.add(value)
             unique.append(value)
-        if len(unique) >= limits.max_strings:
-            break
+
+    ascii_buffer = bytearray()
+    ascii_length = 0
+    for byte in data:
+        if byte in _PRINTABLE:
+            ascii_length += 1
+            if len(ascii_buffer) < limits.max_length:
+                ascii_buffer.append(byte)
+            continue
+        if ascii_length >= limits.min_length:
+            _append(bytes(ascii_buffer).decode("ascii", errors="replace"))
+            if len(unique) >= limits.max_strings:
+                break
+        ascii_buffer.clear()
+        ascii_length = 0
+    else:
+        if ascii_length >= limits.min_length:
+            _append(bytes(ascii_buffer).decode("ascii", errors="replace"))
+
+    if len(unique) < limits.max_strings:
+        utf16_buffer = bytearray()
+        utf16_length = 0
+        for index in range(0, len(data) - 1, 2):
+            low, high = data[index], data[index + 1]
+            if high == 0 and low in _PRINTABLE:
+                utf16_length += 1
+                if len(utf16_buffer) < limits.max_length:
+                    utf16_buffer.append(low)
+                continue
+            if utf16_length >= limits.min_length:
+                _append(bytes(utf16_buffer).decode("ascii", errors="replace"))
+                if len(unique) >= limits.max_strings:
+                    break
+            utf16_buffer.clear()
+            utf16_length = 0
+        else:
+            if utf16_length >= limits.min_length:
+                _append(bytes(utf16_buffer).decode("ascii", errors="replace"))
 
     relevant = [value for value in unique if any(hint in value for hint in _RELEVANT_HINTS)]
     return unique, relevant
 
 
+_VERSION_PATTERN = re.compile(r"\b\d+\.\d+(?:\.\d+){0,3}\b")
+
+
 def find_version_signatures(strings: list[str], limit: int = 20) -> list[str]:
-    pattern = re.compile(r"\b\d+\.\d+(?:\.\d+){0,3}\b")
     found: list[str] = []
     seen: set[str] = set()
     for value in strings:
-        for match in pattern.findall(value):
+        for match in _VERSION_PATTERN.findall(value):
             if match not in seen:
                 seen.add(match)
                 found.append(match)

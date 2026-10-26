@@ -470,7 +470,15 @@ def update_job(
     result_summary: str | None = None,
     started_at: str | None = None,
     finished_at: str | None = None,
-) -> None:
+    claimed_by: str | None = None,
+) -> bool:
+    """Actualiza el estado de un trabajo.
+
+    Si se informa ``claimed_by``, la actualización solo se aplica mientras el
+    trabajo siga siendo propiedad de ese trabajador: un trabajador que perdió la
+    propiedad (por recuperación por obsolescencia) no puede sobrescribir el
+    estado. Devuelve ``True`` si la fila fue actualizada.
+    """
     fields: list[str] = []
     values: list[Any] = []
     for column, value in (
@@ -488,9 +496,14 @@ def update_job(
             fields.append(f"{column} = ?")
             values.append(value)
     if not fields:
-        return
+        return True
     values.append(job_id)
-    conn.execute(f"UPDATE analysis_jobs SET {', '.join(fields)} WHERE id = ?", values)
+    where = "WHERE id = ?"
+    if claimed_by is not None:
+        where += " AND claimed_by = ?"
+        values.append(claimed_by)
+    cursor = conn.execute(f"UPDATE analysis_jobs SET {', '.join(fields)} {where}", values)
+    return cursor.rowcount > 0
 
 
 def request_cancel(conn: sqlite3.Connection, job_id: str, organization_id: str) -> bool:
@@ -531,11 +544,13 @@ def claim_next_job(conn: sqlite3.Connection, *, worker_id: str, now: str) -> dic
     return _row(row)
 
 
-def heartbeat_job(conn: sqlite3.Connection, job_id: str, *, worker_id: str, now: str) -> None:
-    conn.execute(
+def heartbeat_job(conn: sqlite3.Connection, job_id: str, *, worker_id: str, now: str) -> bool:
+    """Registra el latido del trabajador; ``False`` si ya no es el propietario."""
+    cursor = conn.execute(
         "UPDATE analysis_jobs SET claimed_at = ? WHERE id = ? AND claimed_by = ?",
         (now, job_id, worker_id),
     )
+    return cursor.rowcount > 0
 
 
 def recover_stale_jobs(
@@ -568,11 +583,6 @@ def recover_stale_jobs(
         (now, cutoff, max_attempts),
     ).rowcount
     return {"requeued": int(requeued), "failed": int(exhausted)}
-
-
-def is_cancel_requested(conn: sqlite3.Connection, job_id: str) -> bool:
-    row = conn.execute("SELECT cancel_requested FROM analysis_jobs WHERE id = ?", (job_id,)).fetchone()
-    return bool(row and row["cancel_requested"])
 
 
 # --------------------------------------------------------------------------- #
@@ -700,6 +710,30 @@ def list_dependencies(conn: sqlite3.Connection, analysis_id: str, organization_i
         (analysis_id, organization_id),
     ).fetchall()
     return _rows(rows)
+
+
+def count_nodes(conn: sqlite3.Connection, analysis_id: str, organization_id: str) -> int:
+    row = conn.execute(
+        "SELECT COUNT(*) AS c FROM architecture_nodes WHERE analysis_id = ? AND organization_id = ?",
+        (analysis_id, organization_id),
+    ).fetchone()
+    return int(row["c"]) if row else 0
+
+
+def count_edges(conn: sqlite3.Connection, analysis_id: str, organization_id: str) -> int:
+    row = conn.execute(
+        "SELECT COUNT(*) AS c FROM architecture_edges WHERE analysis_id = ? AND organization_id = ?",
+        (analysis_id, organization_id),
+    ).fetchone()
+    return int(row["c"]) if row else 0
+
+
+def count_dependencies(conn: sqlite3.Connection, analysis_id: str, organization_id: str) -> int:
+    row = conn.execute(
+        "SELECT COUNT(*) AS c FROM dependency_records WHERE analysis_id = ? AND organization_id = ?",
+        (analysis_id, organization_id),
+    ).fetchone()
+    return int(row["c"]) if row else 0
 
 
 def count_edges_by_evidence(conn: sqlite3.Connection, analysis_id: str, organization_id: str) -> dict[str, int]:

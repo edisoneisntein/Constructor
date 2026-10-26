@@ -1,8 +1,10 @@
-export const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:8001";
+export const API_BASE = (
+  process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:8000"
+).replace(/\/+$/, "");
 
 const TOKEN_KEY = "sirep.token";
 const ORG_KEY = "sirep.org";
+const REQUEST_TIMEOUT_MS = 30000;
 
 export class ApiError extends Error {
   status: number;
@@ -37,7 +39,7 @@ export function clearSession(): void {
   window.localStorage.removeItem(ORG_KEY);
 }
 
-export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
+function authHeaders(init: RequestInit): Headers {
   const headers = new Headers(init.headers);
   const token = getToken();
   if (token) headers.set("Authorization", `Bearer ${token}`);
@@ -46,28 +48,48 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (init.body && !(init.body instanceof FormData) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
+  return headers;
+}
 
-  const response = await fetch(`${API_BASE}${path}`, { ...init, headers });
+async function request(path: string, init: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    return await fetch(`${API_BASE}${path}`, {
+      ...init,
+      headers: authHeaders(init),
+      signal: init.signal ?? controller.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const response = await request(path, init);
   if (response.status === 204) return undefined as T;
 
   const text = await response.text();
-  const data = text ? JSON.parse(text) : null;
+  let data: unknown = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      if (response.ok) throw new ApiError("Respuesta no JSON del servidor", response.status);
+      data = null;
+    }
+  }
   if (!response.ok) {
-    const message = data?.error?.message ?? `Error ${response.status}`;
-    throw new ApiError(message, response.status, data?.error?.code);
+    const payload = data as { error?: { message?: string; code?: string } } | null;
+    const message = payload?.error?.message ?? `Error ${response.status}`;
+    throw new ApiError(message, response.status, payload?.error?.code);
   }
   return data as T;
 }
 
 export async function downloadExport(analysisId: string, fmt: "json" | "markdown"): Promise<void> {
-  const headers = new Headers();
-  const token = getToken();
-  if (token) headers.set("Authorization", `Bearer ${token}`);
-  const org = getOrgId();
-  if (org) headers.set("X-Organization-Id", org);
-  const response = await fetch(`${API_BASE}/api/v1/analyses/${analysisId}/export?fmt=${fmt}`, {
+  const response = await request(`/api/v1/analyses/${analysisId}/export?fmt=${fmt}`, {
     method: "POST",
-    headers,
   });
   if (!response.ok) throw new ApiError(`Error al exportar (${response.status})`, response.status);
   const blob = await response.blob();
